@@ -39,6 +39,12 @@
         {
           "cameraPermission": "Allow SecondSet Signer to access camera for scanning QR codes."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#2D9D92"
+        }
       ]
     ],
     "extra": {

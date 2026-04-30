@@ -21,6 +21,7 @@ import { DatabaseService } from './services/DatabaseService';
 import { WebSocketManager } from './services/WebSocketManager';
 import signingRoutes from './routes/signing.routes';
 import recoveryRoutes from './routes/recovery.routes';
+import pushRoutes from './routes/push.routes';
 import { requireApiKey, rateLimit } from './middleware/auth';
 
 const app = express();
@@ -316,6 +317,12 @@ app.use('/api/v1/sign', signingRoutes); // alias for mobile app compatibility
 // ============================================================================
 
 app.use('/api/v1/recovery', recoveryRoutes);
+
+// ============================================================================
+// PUSH NOTIFICATION ENDPOINTS
+// ============================================================================
+
+app.use('/api/v1/push', pushRoutes);
 
 // ============================================================================
 // ERROR HANDLING

@@ -127,4 +127,18 @@ export class CoordinatorAPI {
     );
     return response.data;
   }
+
+  static async registerPushToken(
+    deviceId: string,
+    orgId: string,
+    pushToken: string,
+    platform: string
+  ): Promise<void> {
+    await axios.post(`${COORDINATOR_URL}/api/v1/push/register`, {
+      device_id: deviceId,
+      org_id: orgId,
+      push_token: pushToken,
+      platform,
+    });
+  }
 }

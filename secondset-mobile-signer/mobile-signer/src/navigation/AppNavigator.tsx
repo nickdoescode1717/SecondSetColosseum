@@ -1,8 +1,9 @@
 // mobile-signer/src/navigation/AppNavigator.tsx
 
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect } from 'react';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import * as Notifications from 'expo-notifications';
 import { LoginScreen } from '../screens/LoginScreen';
 import { TabNavigator } from './TabNavigator';
 import { VaultDetailScreen } from '../screens/VaultDetailScreen';
@@ -24,9 +25,22 @@ const BG = '#F8FAFB';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
 export const AppNavigator = () => {
+  useEffect(() => {
+    // Navigate to Activity tab when user taps a signing request notification
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as any;
+      if (data?.type === 'signing_request' && navigationRef.isReady()) {
+        navigationRef.navigate('MainTabs', { screen: 'Activity' });
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         initialRouteName="Login"
         screenOptions={{

@@ -6,6 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { SecureStorage } from '../services/SecureStorage';
 import { CoordinatorAPI } from '../services/CoordinatorAPI';
+import { PushNotifications } from '../services/PushNotifications';
 
 export const LoginScreen = () => {
   const navigation = useNavigation();
@@ -52,6 +53,7 @@ export const LoginScreen = () => {
       setUser(session);
       await SecureStorage.migrateVaultOrgIds(session.org_id);
       navigation.replace('MainTabs');
+      PushNotifications.registerForPushNotifications(session.org_id).catch(() => {});
     } catch (err: any) {
       const message =
         err?.response?.data?.error ||

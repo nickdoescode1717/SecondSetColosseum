@@ -7,6 +7,7 @@ import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
 import { requireApiKey, rateLimit } from '../middleware/auth';
 import { ChainType, curveForChain } from '../types';
+import { PushNotificationService } from '../services/PushNotificationService';
 
 const router = express.Router();
 
@@ -123,6 +124,9 @@ router.post('/sessions', requireApiKey, rateLimit(50, 60000), async (req, res) =
       expires_at: result.rows[0].expires_at,
       qr_code_data,
     });
+
+    // Best-effort: notify enrolled signers via push notification
+    PushNotificationService.sendSigningRequest(wallet_address, tx_details, session_id).catch(() => {});
   } catch (error) {
     console.error('Error creating signing session:', error);
     res.status(500).json({ error: 'Failed to create signing session' });
