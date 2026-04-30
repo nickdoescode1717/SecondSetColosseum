@@ -99,7 +99,7 @@ Each component has its own `package.json`, database, and environment variables. 
 
 1. **INITIATOR** creates a payment request → **APPROVER** approves it and the web app builds an unsigned transaction
 2. **SIGNER** releases it → web app computes the signing digest and creates a signing session on the coordinator
-3. Web app shows a QR code; two mobile signers scan and join
+3. Two mobile signers see the pending request in their Activity tab, tap to open it, and join
 4. Each signer loads their key share (biometric auth required), creates a partial signature
 5. Coordinator aggregates the two partial signatures and sends a `signing.completed` webhook
 6. Web app assembles the final signed transaction and broadcasts it to the blockchain

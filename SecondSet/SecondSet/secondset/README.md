@@ -333,7 +333,7 @@ Immutable, SHA256 hash-chained event log (`src/lib/audit.ts`):
 | Component | Location | Purpose |
 |---|---|---|
 | `KeygenModal` | `dashboard/admin/vaults/` | Wallet creation: config → QR → completion |
-| `SigningModal` | `dashboard/requests/[id]/` | Signing ceremony: shows QR, polls status every 3s |
+| `SigningModal` | `dashboard/requests/[id]/` | Signing ceremony: polls status every 3s until mobile signers complete threshold signing |
 | `RecoveryModal` | `dashboard/admin/vaults/` | Recovery: warning → QR + participants → lock → progress |
 | `QRCodeDisplay` | `dashboard/admin/vaults/` | Reusable QR rendering (qrcode.react) |
 | `ConfirmationPoller` | `dashboard/requests/[id]/` | Client-side poller for on-chain confirmation |
