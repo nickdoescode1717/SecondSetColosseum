@@ -1,0 +1,15 @@
+node_modules/
+.expo/
+dist/
+.env
+.DS_Store
+*.log
+npm-debug.log*
+.vscode/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/

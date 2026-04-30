@@ -1,0 +1,6 @@
+
+// Add this import at the top with other routes
+import signingRoutes from './routes/signing.routes';
+
+// Add this route registration with other app.use statements
+app.use('/api/v1/sign', signingRoutes);

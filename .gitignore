@@ -1,0 +1,98 @@
+# =====================
+# Secrets & Environment
+# =====================
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+*.pem
+*.key
+*.p12
+*.pfx
+*.cert
+*.crt
+*.secret
+
+# =====================
+# Node / npm
+# =====================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# =====================
+# Next.js (Web App)
+# =====================
+.next/
+out/
+build/
+
+# =====================
+# Expo / React Native (Mobile Signer)
+# =====================
+.expo/
+dist/
+web-build/
+*.jks
+*.keystore
+android/app/release/
+ios/Pods/
+ios/build/
+android/.gradle/
+android/build/
+android/app/build/
+
+# =====================
+# Prisma
+# =====================
+# Keep schema.prisma and migrations, exclude generated client
+SecondSet/SecondSet/secondset/node_modules/.prisma/
+
+# =====================
+# Build Outputs
+# =====================
+*.tsbuildinfo
+*.js.map
+.turbo/
+
+# =====================
+# OS Files
+# =====================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Windows reserved device-name artifacts (created by some npm packages on Windows)
+nul
+/nul
+
+# =====================
+# IDE / Editor
+# =====================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =====================
+# Logs
+# =====================
+logs/
+*.log
+
+# =====================
+# Test Coverage
+# =====================
+coverage/
+.nyc_output/

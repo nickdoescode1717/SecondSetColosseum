@@ -1,0 +1,629 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  INITIATOR
+  APPROVER
+  SIGNER
+  ADMIN
+}
+
+enum ChainType {
+  EVM
+  SOLANA
+}
+
+enum RequestStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  READY_TO_RELEASE
+  BROADCASTED
+  CONFIRMED
+  REJECTED
+  FAILED_BROADCAST
+  FAILED_CONFIRM
+}
+
+enum PayeeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PayeeActionType {
+  EDIT
+  DELETE
+}
+
+enum PayeeActionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum KeygenSessionStatus {
+  PENDING
+  COMPLETED
+  EXPIRED
+  FAILED
+  CANCELLED
+}
+
+enum SigningSessionStatus {
+  PENDING
+  COMPLETED
+  EXPIRED
+  FAILED
+}
+
+enum SwapStatus {
+  DRAFT
+  REQUESTED
+  APPROVED
+  RELEASED
+  CONFIRMED
+  FAILED
+  CANCELLED
+}
+
+enum RecoverySessionStatus {
+  PENDING
+  OPEN
+  LOCKED
+  IN_PROGRESS
+  VERIFYING
+  COMPLETED
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+enum AuditEventType {
+  REQUEST_CREATED
+  REQUEST_SUBMITTED
+  REQUEST_APPROVED
+  REQUEST_REJECTED
+  REQUEST_RELEASED
+  REQUEST_BROADCASTED
+  REQUEST_CONFIRMED
+  REQUEST_FAILED
+  PAYEE_CREATED
+  PAYEE_APPROVED
+  PAYEE_REJECTED
+  PAYEE_UPDATED
+  PAYEE_EDIT_REQUESTED
+  PAYEE_DELETE_REQUESTED
+  PAYEE_ACTION_APPROVED
+  PAYEE_ACTION_REJECTED
+  USER_CREATED
+  USER_ROLES_UPDATED
+  USER_ROLE_ASSIGNED
+  USER_ROLE_REVOKED
+  VAULT_CREATED
+  KEYGEN_INITIATED
+  KEYGEN_COMPLETED
+  KEYGEN_FAILED
+  KEYGEN_CANCELLED
+  SIGNING_INITIATED
+  SIGNING_COMPLETED
+  SIGNING_FAILED
+  SWAP_CREATED
+  SWAP_REQUESTED
+  SWAP_APPROVED
+  SWAP_RELEASED
+  SWAP_CONFIRMED
+  SWAP_FAILED
+  SWAP_CANCELLED
+  ORG_CREATED
+  INVITE_CREATED
+  INVITE_ACCEPTED
+  INVITE_REVOKED
+  PAYMENT_RECEIVED
+  RECOVERY_INITIATED
+  RECOVERY_LOCKED
+  RECOVERY_CANCELLED
+  RECOVERY_COMPLETED
+  RECOVERY_FAILED
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users           User[]
+  vaults          Vault[]
+  payees          Payee[]
+  paymentRequests PaymentRequest[]
+  auditEvents     AuditEvent[]
+  payeeActions    PayeeAction[]
+  keygenSessions  KeygenSession[]
+  signingSessions SigningSession[]
+  swapRequests    SwapRequest[]
+  swapSigningSessions SwapSigningSession[]
+  invites              Invite[]
+  incomingTransactions IncomingTransaction[]
+  recoverySessions     RecoverySession[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  orgId          String   @map("org_id")
+  email          String
+  name           String?
+  turnkeyUserId  String?  @map("turnkey_user_id")
+  hashedPassword String?  @map("hashed_password")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  roles        UserRole[]
+
+  createdRequests   PaymentRequest[] @relation("CreatedBy")
+  submittedRequests PaymentRequest[] @relation("SubmittedBy")
+  approvedRequests  PaymentRequest[] @relation("ApprovedBy")
+  releasedRequests  PaymentRequest[] @relation("ReleasedBy")
+  createdPayees     Payee[]          @relation("PayeeCreatedBy")
+  approvedPayees    Payee[]          @relation("PayeeApprovedBy")
+  rolesAssigned     UserRoleAssignment[] @relation("AssignedBy")
+  roleAssignments   UserRoleAssignment[] @relation("AssignedTo")
+  auditEvents       AuditEvent[]
+  requestedPayeeActions PayeeAction[] @relation("PayeeActionRequestedBy")
+  approvedPayeeActions  PayeeAction[] @relation("PayeeActionApprovedBy")
+  rejectedPayeeActions  PayeeAction[] @relation("PayeeActionRejectedBy")
+  initiatedKeygenSessions  KeygenSession[]
+  initiatedSigningSessions SigningSession[]
+  createdSwaps    SwapRequest[] @relation("SwapCreatedBy")
+  submittedSwaps  SwapRequest[] @relation("SwapSubmittedBy")
+  approvedSwaps   SwapRequest[] @relation("SwapApprovedBy")
+  releasedSwaps   SwapRequest[] @relation("SwapReleasedBy")
+  initiatedSwapSigningSessions SwapSigningSession[]
+  createdInvites   Invite[] @relation("InviteCreatedBy")
+  acceptedInvites  Invite[] @relation("InviteAcceptedBy")
+  initiatedRecoverySessions RecoverySession[]
+
+  @@unique([orgId, email])
+  @@index([orgId])
+  @@index([email])
+  @@map("users")
+}
+
+model UserRoleAssignment {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  role       UserRole
+  assignedBy String?  @map("assigned_by")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  user     User  @relation("AssignedTo", fields: [userId], references: [id], onDelete: Cascade)
+  assigner User? @relation("AssignedBy", fields: [assignedBy], references: [id])
+
+  @@unique([userId, role])
+  @@index([userId])
+  @@map("user_roles")
+}
+
+model Vault {
+  id                    String    @id @default(uuid())
+  orgId                 String    @map("org_id")
+  chain                 ChainType
+  chainName              String?   @map("chain_name")
+  address               String
+  turnkeyWalletId       String    @map("turnkey_wallet_id")
+  turnkeyWalletAccountId String?  @map("turnkey_wallet_account_id")
+  name                  String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  lastCheckedBlock      BigInt?   @map("last_checked_block")
+  lastCheckedSignature  String?   @map("last_checked_signature")
+
+  organization         Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  paymentRequests      PaymentRequest[]
+  swapRequests         SwapRequest[]
+  keygenSession        KeygenSession?
+  incomingTransactions IncomingTransaction[]
+  recoverySessions     RecoverySession[]
+
+  @@unique([orgId, chain, address])
+  @@index([orgId])
+  @@index([address])
+  @@map("vaults")
+}
+
+model Payee {
+  id           String      @id @default(uuid())
+  orgId        String      @map("org_id")
+  chain        ChainType
+  address      String
+  name         String
+  contactEmail String?     @map("contact_email")
+  notes        String?
+  status       PayeeStatus @default(PENDING)
+  createdBy    String      @map("created_by")
+  approvedBy   String?     @map("approved_by")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  approvedAt   DateTime?   @map("approved_at")
+  rejectedAt   DateTime?   @map("rejected_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  organization    Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  creator         User             @relation("PayeeCreatedBy", fields: [createdBy], references: [id])
+  approver        User?            @relation("PayeeApprovedBy", fields: [approvedBy], references: [id])
+  paymentRequests PaymentRequest[]
+  actions         PayeeAction[]
+
+  @@unique([orgId, chain, address])
+  @@index([orgId])
+  @@index([status])
+  @@index([chain, address])
+  @@map("payees")
+}
+
+model PayeeAction {
+  id           String            @id @default(uuid())
+  orgId        String            @map("org_id")
+  payeeId      String            @map("payee_id")
+  actionType   PayeeActionType   @map("action_type")
+  status       PayeeActionStatus @default(PENDING)
+  requestedBy  String            @map("requested_by")
+  approvedBy   String?           @map("approved_by")
+  rejectedBy   String?           @map("rejected_by")
+  
+  proposedChanges Json?          @map("proposed_changes")
+  
+  createdAt    DateTime          @default(now()) @map("created_at")
+  approvedAt   DateTime?         @map("approved_at")
+  rejectedAt   DateTime?         @map("rejected_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  payee           Payee        @relation(fields: [payeeId], references: [id], onDelete: Cascade)
+  requestedByUser User         @relation("PayeeActionRequestedBy", fields: [requestedBy], references: [id])
+  approver        User?        @relation("PayeeActionApprovedBy", fields: [approvedBy], references: [id])
+  rejecter        User?        @relation("PayeeActionRejectedBy", fields: [rejectedBy], references: [id])
+
+  @@index([orgId])
+  @@index([payeeId])
+  @@index([status])
+  @@map("payee_actions")
+}
+
+model PaymentRequest {
+  id          String        @id @default(uuid())
+  orgId       String        @map("org_id")
+  vaultId     String        @map("vault_id")
+  payeeId     String        @map("payee_id")
+  chain       ChainType
+  asset       String        @default("USDC")
+  amountMinor String        @map("amount_minor")
+  memo        String?
+  attachmentUrl String?     @map("attachment_url")
+  status      RequestStatus @default(DRAFT)
+
+  createdBy   String    @map("created_by")
+  submittedBy String?   @map("submitted_by")
+  approvedBy  String?   @map("approved_by")
+  releasedBy  String?   @map("released_by")
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  submittedAt   DateTime? @map("submitted_at")
+  approvedAt    DateTime? @map("approved_at")
+  releasedAt    DateTime? @map("released_at")
+  broadcastedAt DateTime? @map("broadcasted_at")
+  confirmedAt   DateTime? @map("confirmed_at")
+
+  unsignedTx            Json?     @map("unsigned_tx")
+  txDigest              String?   @map("tx_digest")
+  txHash                String?   @map("tx_hash")
+  explorerUrl           String?   @map("explorer_url")
+  confirmationCount     Int       @default(0) @map("confirmation_count")
+
+  releaseToken          String?   @map("release_token")
+  releaseTokenExpiresAt DateTime? @map("release_token_expires_at")
+  releaseNonce          String?   @map("release_nonce")
+  policyVersion         Int       @default(1) @map("policy_version")
+
+  errorMessage String? @map("error_message")
+  retryCount   Int     @default(0) @map("retry_count")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  vault        Vault         @relation(fields: [vaultId], references: [id])
+  payee        Payee         @relation(fields: [payeeId], references: [id])
+  creator      User          @relation("CreatedBy", fields: [createdBy], references: [id])
+  submitter    User?         @relation("SubmittedBy", fields: [submittedBy], references: [id])
+  approver     User?         @relation("ApprovedBy", fields: [approvedBy], references: [id])
+  releaser     User?         @relation("ReleasedBy", fields: [releasedBy], references: [id])
+  auditEvents  AuditEvent[]
+  broadcastJob BroadcastJob?
+  signingSession SigningSession?
+
+  @@index([orgId])
+  @@index([status])
+  @@index([createdBy])
+  @@index([vaultId])
+  @@index([txHash])
+  @@map("payment_requests")
+}
+
+model AuditEvent {
+  id             String         @id @default(uuid())
+  orgId          String         @map("org_id")
+  eventType      AuditEventType @map("event_type")
+  userId         String?        @map("user_id")
+  requestId      String?        @map("request_id")
+  swapRequestId  String?        @map("swap_request_id")
+  metadata       Json?
+  previousHash   String?        @map("previous_hash")
+  eventHash      String         @map("event_hash")
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  organization   Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user           User?           @relation(fields: [userId], references: [id])
+  paymentRequest PaymentRequest? @relation(fields: [requestId], references: [id])
+  swapRequest    SwapRequest?    @relation(fields: [swapRequestId], references: [id])
+
+  @@index([orgId])
+  @@index([requestId])
+  @@index([swapRequestId])
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_events")
+}
+
+model BroadcastJob {
+  id        String   @id @default(uuid())
+  requestId String   @unique @map("request_id")
+  jobId     String   @map("job_id")
+  status    String
+  attempts  Int      @default(0)
+  lastError String?  @map("last_error")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  paymentRequest PaymentRequest @relation(fields: [requestId], references: [id])
+
+  @@index([requestId])
+  @@index([status])
+  @@map("broadcast_jobs")
+}
+
+model KeygenSession {
+  id                   String              @id @default(uuid())
+  orgId                String              @map("org_id")
+  coordinatorSessionId String              @unique @map("coordinator_session_id")
+  qrCodeData           String              @map("qr_code_data")
+  status               KeygenSessionStatus @default(PENDING)
+  walletAddress        String?             @map("wallet_address")
+  chain                ChainType
+  chainName            String              @map("chain_name")
+  vaultId              String?             @unique @map("vault_id")
+  initiatedBy          String              @map("initiated_by")
+  errorMessage         String?             @map("error_message")
+  expiresAt            DateTime            @map("expires_at")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  completedAt          DateTime?           @map("completed_at")
+
+  organization         Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  initiator            User                @relation(fields: [initiatedBy], references: [id])
+  vault                Vault?              @relation(fields: [vaultId], references: [id])
+
+  @@index([orgId])
+  @@index([status])
+  @@index([coordinatorSessionId])
+  @@map("keygen_sessions")
+}
+
+model SigningSession {
+  id                   String               @id @default(uuid())
+  orgId                String               @map("org_id")
+  requestId            String               @unique @map("request_id")
+  coordinatorSessionId String               @unique @map("coordinator_session_id")
+  qrCodeData           String?              @map("qr_code_data")
+  status               SigningSessionStatus @default(PENDING)
+  signedTx             String?              @map("signed_tx")
+  initiatedBy          String               @map("initiated_by")
+  errorMessage         String?              @map("error_message")
+  expiresAt            DateTime             @map("expires_at")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  completedAt          DateTime?            @map("completed_at")
+
+  organization         Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  initiator            User                 @relation(fields: [initiatedBy], references: [id])
+  paymentRequest       PaymentRequest       @relation(fields: [requestId], references: [id])
+
+  @@index([orgId])
+  @@index([status])
+  @@index([requestId])
+  @@index([coordinatorSessionId])
+  @@map("signing_sessions")
+}
+
+model SwapRequest {
+  id                    String     @id @default(cuid())
+  orgId                 String     @map("org_id")
+  vaultId               String     @map("vault_id")
+  chain                 ChainType  @default(EVM)
+  chainName             String     @map("chain_name")
+
+  // Token pair
+  fromToken             String     @map("from_token")
+  fromTokenAddress      String     @map("from_token_address")
+  fromTokenDecimals     Int        @map("from_token_decimals")
+  toToken               String     @map("to_token")
+  toTokenAddress        String     @map("to_token_address")
+  toTokenDecimals       Int        @map("to_token_decimals")
+  fromAmount            String     @map("from_amount")
+
+  // Quote captured at creation (for reference / deviation check)
+  expectedOutput        String?    @map("expected_output")
+  minimumOutput         String?    @map("minimum_output")
+  slippageBps           Int        @default(50) @map("slippage_bps")
+  priceImpact           String?    @map("price_impact")
+  route                 Json?
+  quoteTimestamp        DateTime?  @map("quote_timestamp")
+  quoteExpiresAt        DateTime?  @map("quote_expires_at")
+
+  // Release quote (fresh quote at release time)
+  releaseQuoteOutput    String?    @map("release_quote_output")
+  releaseQuoteMinOutput String?    @map("release_quote_min_output")
+  releaseQuoteTimestamp DateTime?  @map("release_quote_timestamp")
+
+  // Transaction payload (built at release time)
+  unsignedTx            Json?      @map("unsigned_tx")
+  txDigest              String?    @map("tx_digest")
+  releaseToken          String?    @map("release_token") @db.Text
+  releaseTokenExpiresAt DateTime?  @map("release_token_expires_at")
+
+  // On-chain result
+  txHash                String?    @map("tx_hash")
+  explorerUrl           String?    @map("explorer_url")
+
+  // Status & lifecycle
+  status                SwapStatus @default(DRAFT)
+  errorMessage          String?    @map("error_message")
+  memo                  String?
+
+  // User tracking
+  createdBy             String     @map("created_by")
+  submittedBy           String?    @map("submitted_by")
+  approvedBy            String?    @map("approved_by")
+  releasedBy            String?    @map("released_by")
+
+  // Timestamps
+  createdAt             DateTime   @default(now()) @map("created_at")
+  submittedAt           DateTime?  @map("submitted_at")
+  approvedAt            DateTime?  @map("approved_at")
+  releasedAt            DateTime?  @map("released_at")
+  confirmedAt           DateTime?  @map("confirmed_at")
+  cancelledAt           DateTime?  @map("cancelled_at")
+  updatedAt             DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  organization          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  vault                 Vault        @relation(fields: [vaultId], references: [id])
+  creator               User         @relation("SwapCreatedBy", fields: [createdBy], references: [id])
+  submitter             User?        @relation("SwapSubmittedBy", fields: [submittedBy], references: [id])
+  approver              User?        @relation("SwapApprovedBy", fields: [approvedBy], references: [id])
+  releaser              User?        @relation("SwapReleasedBy", fields: [releasedBy], references: [id])
+  signingSession        SwapSigningSession?
+  auditEvents           AuditEvent[]
+
+  @@index([orgId])
+  @@index([status])
+  @@index([createdBy])
+  @@index([vaultId])
+  @@index([txHash])
+  @@map("swap_requests")
+}
+
+model SwapSigningSession {
+  id                   String               @id @default(cuid())
+  orgId                String               @map("org_id")
+  swapRequestId        String               @unique @map("swap_request_id")
+  coordinatorSessionId String               @unique @map("coordinator_session_id")
+  qrCodeData           String?              @map("qr_code_data") @db.Text
+  status               SigningSessionStatus @default(PENDING)
+  signedTx             String?              @map("signed_tx") @db.Text
+  initiatedBy          String               @map("initiated_by")
+  errorMessage         String?              @map("error_message")
+  expiresAt            DateTime?            @map("expires_at")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  completedAt          DateTime?            @map("completed_at")
+
+  organization         Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  initiator            User                 @relation(fields: [initiatedBy], references: [id])
+  swapRequest          SwapRequest          @relation(fields: [swapRequestId], references: [id])
+
+  @@index([orgId])
+  @@index([status])
+  @@index([swapRequestId])
+  @@index([coordinatorSessionId])
+  @@map("swap_signing_sessions")
+}
+
+model Invite {
+  id         String    @id @default(uuid())
+  orgId      String    @map("org_id")
+  email      String
+  roles      UserRole[]
+  token      String    @unique
+  expiresAt  DateTime  @map("expires_at")
+  createdBy  String    @map("created_by")
+  usedAt     DateTime? @map("used_at")
+  usedBy     String?   @map("used_by")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  creator      User         @relation("InviteCreatedBy", fields: [createdBy], references: [id])
+  acceptedUser User?        @relation("InviteAcceptedBy", fields: [usedBy], references: [id])
+
+  @@index([orgId])
+  @@index([token])
+  @@index([email])
+  @@map("invites")
+}
+
+model IncomingTransaction {
+  id          String   @id @default(uuid())
+  orgId       String   @map("org_id")
+  vaultId     String   @map("vault_id")
+  txHash      String   @map("tx_hash")
+  fromAddress String   @map("from_address")
+  asset       String
+  amount      String
+  amountRaw   String   @map("amount_raw")
+  chainName   String   @map("chain_name")
+  blockNumber BigInt?  @map("block_number")
+  detectedAt  DateTime @default(now()) @map("detected_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  vault        Vault        @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+
+  @@unique([txHash, vaultId, asset])
+  @@index([orgId])
+  @@index([vaultId])
+  @@index([detectedAt(sort: Desc)])
+  @@map("incoming_transactions")
+}
+
+model RecoverySession {
+  id                   String                @id @default(uuid())
+  orgId                String                @map("org_id")
+  vaultId              String                @map("vault_id")
+  coordinatorSessionId String                @unique @map("coordinator_session_id")
+  initiatedBy          String                @map("initiated_by")
+  status               RecoverySessionStatus @default(PENDING)
+  chain                ChainType
+  reason               String?
+  thresholdPolicy      Json                  @map("threshold_policy")
+  computedM            Int?                  @map("computed_m")
+  computedOldN         Int?                  @map("computed_old_n")
+  computedNewN         Int?                  @map("computed_new_n")
+  qrCodeData           String                @map("qr_code_data")
+  recoveryRecord       Json?                 @map("recovery_record")
+  errorMessage         String?               @map("error_message")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  lockedAt             DateTime?             @map("locked_at")
+  completedAt          DateTime?             @map("completed_at")
+
+  organization         Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  vault                Vault                 @relation(fields: [vaultId], references: [id])
+  initiator            User                  @relation(fields: [initiatedBy], references: [id])
+
+  @@index([orgId])
+  @@index([vaultId])
+  @@index([status])
+  @@index([coordinatorSessionId])
+  @@map("recovery_sessions")
+}

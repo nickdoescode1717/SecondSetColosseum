@@ -1,0 +1,1 @@
+      [session_id, org_id, wallet_address, request_id, tx_digest, JSON.stringify(tx_details), required_signers, expires_at]
