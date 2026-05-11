@@ -160,6 +160,40 @@ Four roles with strict separation of duties:
 
 ---
 
+## Dev Launcher (Windows — Development Only)
+
+A set of batch scripts at the repo root lets you start and stop all three services with a single double-click. **Development use only — do not use in production.**
+
+### One-click startup
+
+Double-click **`start-dev.bat`** at the repo root.
+
+- If **Windows Terminal** (`wt`) is installed (default on Windows 11), all three services open as tabs in a single terminal window.
+- If not, three separate CMD windows open — Coordinator first, then Web App, then Mobile.
+
+Double-click **`stop-dev.bat`** to kill all running services (terminates processes on ports 3000, 3002, and 8081).
+
+### Individual service scripts
+
+Located in `dev-scripts/` — useful when you only want to restart one service:
+
+| Script | Service | Port |
+|---|---|---|
+| `dev-scripts\start-coordinator.bat` | Coordinator | 3000 |
+| `dev-scripts\start-webapp.bat` | Web App | 3002 |
+| `dev-scripts\start-mobile.bat` | Mobile / Expo | 8081 |
+
+### Creating a Desktop Shortcut
+
+1. Open the repo root in File Explorer
+2. Right-click **`start-dev.bat`** → **Create shortcut**
+3. Drag the shortcut to your Desktop (or pin it to your taskbar)
+4. Double-click the shortcut any time to launch all services
+
+> The launcher window closes itself after 5 seconds once all services are spawned.
+
+---
+
 ## Quick Start (Full System)
 
 ### Prerequisites
@@ -189,7 +223,7 @@ npm install
 # Create .env with DATABASE_URL, NEXTAUTH_SECRET, COORDINATOR_API_URL, etc.
 npx prisma migrate dev
 npx prisma db seed          # Creates test users and org
-npm run dev                 # Starts on port 3001 (change to avoid coordinator conflict)
+npm run dev                 # Starts on port 3002
 ```
 
 ### 3. Mobile App
